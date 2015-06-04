@@ -8,10 +8,10 @@ use Hypothesis::API;
 
 use Term::ReadKey;
 
-# Globals
 my $H;
+my $test_uri = 'https://github.com/bbarker/Hypothesis-API/blob/master/xt/Testbed.md';
 
-plan tests => 4;
+plan tests => 5;
 
 sub init_h_0 {
 
@@ -70,6 +70,25 @@ sub login {
     pass("login succeeded.");
 }
 
+sub create_simple {
+    #Assumes already logged in.
+    
+    my $payload = {
+        "uri"  => $test_uri,
+        "text" => "testing create in hypothes.is API"
+    };
+
+    my $retval = $H->create($payload);
+    
+    if (length $retval < 4) {
+        fail("create failed: didn't get an id.")
+    } else {
+        print "annotation id is: $retval\n";
+    }
+    pass("create succeeded.");
+}
+
+
 TODO: {
     init_h_0;
     undef $H;
@@ -77,6 +96,7 @@ TODO: {
     undef $H;
     init_h_2;
     login;
+    create_simple;
 
 }
 

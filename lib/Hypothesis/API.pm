@@ -6,6 +6,7 @@ use warnings;
 
 use namespace::autoclean;
 use Moose;
+use Storable qw( dclone );
 
 use CGI::Cookie;
 use HTTP::Cookies;
@@ -116,6 +117,93 @@ around BUILDARGS => sub {
 
 =head1 SUBROUTINES/METHODS
 
+=head2 create($payload)
+
+In the simplest form, creates an annotation
+$payload->{'text'} at $payload->{'uri'}.
+For more sophisticated usage please see the
+hypothes.is API documentation.
+
+Returns annotation id if created or HTTP status 
+code otherwise.
+
+=cut
+
+sub create {
+    my ($self, $payload) = @_;
+
+    if (ref($payload) ne "HASH") {
+        warn('payload is not a hashref');
+        return -1;
+    }
+    if (not exists $payload->{'uri'}) {
+        warn("payload does not contain a 'uri' key to be annotated");
+        return -1;
+    }
+    my $payload_out = dclone $payload;
+    my $user = $self->username;
+    my $user_acct = "acct:$user\@hypothes.is";
+    print $user_acct . "\n";
+    $payload_out->{'user'} = $user_acct;
+    if (not exists $payload->{'permissions'}) {
+        $payload_out->{'permissions'} = { 
+            "read"   => ["group:__world__"],
+            "update" => [$user_acct],
+            "delete" => [$user_acct],
+            "admin"  => [$user_acct]
+        };
+    }
+    if (not exists $payload->{'document'}) {
+        $payload_out->{'document'} = {};
+    }
+    if (not exists $payload->{'text'}) {
+        $payload_out->{'text'} = undef;
+    }
+    if (not exists $payload->{'tags'}) {
+        $payload_out->{'tags'} = undef;
+    }
+    if (not exists $payload->{'target'}) {
+        $payload_out->{'target'} = {
+            "selector" => [
+                {
+                "start" => undef,
+                "end"   => undef,
+                "type"  => "TextPositionSelector"
+                },  
+                {
+                "type"   => "TextQuoteSelector", 
+                "prefix" => undef,
+                "exact"  => undef,
+                "suffix" => undef
+                },
+            ]
+        };
+    }
+    
+    my $data = $json->encode($payload_out);
+    my $h = HTTP::Headers->new;
+    $h->header(
+        'content-type' => 'application/json;charset=UTF-8', 
+        'x-csrf-token' => $self->csrf_token,
+        'X-Annotator-Auth-Token' => $self->token, 
+    );
+    $self->ua->default_headers( $h );
+    my $url = "${\$self->api_url}/annotations";
+    my $response = $self->ua->post( $url, Content => $data );
+    if ($response->code == 200) {
+        #print Dumper($response->content);
+        my $json_content = $json->decode($response->content);
+        if (exists $json_content->{'id'}) {
+            return $json_content->{'id'};
+        } else {
+            return -1;
+        }
+    } else {
+        return $response->code;
+    }
+}
+
+
 =head2 login
 
 Proceeds to login; on success retrieves and stores 
@@ -144,7 +232,7 @@ sub login {
     $h->header(
         'content-type' => 'application/json;charset=UTF-8', 
         'x-csrf-token' => $self->csrf_token,
-        );
+    );
     $self->ua->default_headers( $h );
     my $payload = {
         username => $self->username,
@@ -156,7 +244,7 @@ sub login {
         Content => $data
     );
     my $url = "${\$self->api_url}/token?assertion=${\$self->csrf_token}";
-    my $url = $uri_encoder->encode( $url );
+    $url = $uri_encoder->encode( $url );
     $response = $self->ua->get( $url );
     $self->token($response->content);
 
