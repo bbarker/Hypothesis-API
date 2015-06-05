@@ -17,8 +17,9 @@ sub init_h_0 {
 
     $H = Hypothesis::API->new;
 
-    if ((q() ne $H->username) || (q() ne $H->password)) {
+    if ((defined $H->username) || (defined $H->password)) {
         fail("username or password not initialized correctly.");
+        return;
     }
     pass("API object initialized.");
 }
@@ -31,8 +32,9 @@ sub init_h_1 {
 
     $H = Hypothesis::API->new($username);
 
-    if (($username ne $H->username) || (q() ne $H->password)) {
+    if (($username ne $H->username) || (defined $H->password)) {
         fail("username or password not initialized correctly.");
+        return;
     }
     pass("API object initialized.");
 }
@@ -51,6 +53,7 @@ sub init_h_2 {
 
     if (($username ne $H->username) || ($password ne $H->password)) {
         fail("username or password not initialized correctly.");
+        return;
     }
     pass("API object initialized.");
 }
@@ -59,12 +62,14 @@ sub login {
     my $retval = $H->login;
 
     if ($retval != 0) {
-        fail("login failed: non-zero exit status.")
+        fail("login failed: non-zero exit status.");
+        return;
     }    
 
     #FIXME: improve somehow?
     if (length "${\$H->token}" < 256) {
-        fail("login failed: doesn't look like we got a token back.")
+        fail("login failed: doesn't look like we got a token back.");
+        return;
     }
     
     pass("login succeeded.");
@@ -81,7 +86,8 @@ sub create_simple {
     my $retval = $H->create($payload);
     
     if (length $retval < 4) {
-        fail("create failed: didn't get an id.")
+        fail("create failed: didn't get an id.");
+        return;
     } else {
         print "annotation id is: $retval\n";
     }

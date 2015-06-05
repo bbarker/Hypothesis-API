@@ -4,6 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
+#use Attribute::Generator;
 use namespace::autoclean;
 use Moose;
 use Storable qw( dclone );
@@ -13,6 +14,7 @@ use HTTP::Cookies;
 use HTTP::Request;
 use JSON;
 use LWP::UserAgent;
+use URI;
 use URI::Encode;
 
 # For better performance, also install:
@@ -59,7 +61,10 @@ my $json = JSON->new->allow_nonref;
 $json->pretty(1);
 $json->canonical(1); 
 
-my $uri_encoder = URI::Encode->new( { encode_reserved => 0 } );
+# my $uri_encoder = URI::Encode->new( { 
+#     encode_reserved => 0, 
+#     double_encode => 0, 
+# } );
 
 has 'api_url' => (
     is        => 'ro',
@@ -99,6 +104,18 @@ has 'ua' => (
     predicate => 'has_ua',
 );
 
+has 'uri_encoder' => (
+    is        => 'ro',
+    default   =>  sub {  
+        URI::Encode->new( { 
+            encode_reserved => 0, 
+            double_encode => 0, 
+        } );
+    },
+    predicate => 'has_uri_encoder',
+);
+
+
 around BUILDARGS => sub {
     my $orig  = shift;
     my $class = shift;
@@ -109,15 +126,17 @@ around BUILDARGS => sub {
         }
         return $class->$orig( username => $_[0], password => $_[1] );
     } elsif ( @_ == 1 && !ref $_[0] ) {
-        return $class->$orig( username => $_[0], password => q() );
+        return $class->$orig( username => $_[0], password => undef );
     } else {
-        return $class->$orig( username => q(), password => q() );
+        return $class->$orig( username => undef, password => undef );
     }
 };
 
 =head1 SUBROUTINES/METHODS
 
 =head2 create($payload)
+
+Generalized interface to POST /api/annotations
 
 In the simplest form, creates an annotation
 $payload->{'text'} at $payload->{'uri'}.
@@ -188,7 +207,7 @@ sub create {
         'X-Annotator-Auth-Token' => $self->token, 
     );
     $self->ua->default_headers( $h );
-    my $url = "${\$self->api_url}/annotations";
+    my $url = URI->new( "${\$self->api_url}/annotations" );
     my $response = $self->ua->post( $url, Content => $data );
     if ($response->code == 200) {
         #print Dumper($response->content);
@@ -243,12 +262,58 @@ sub login {
         $self->app_url . '?__formid__=login', 
         Content => $data
     );
-    my $url = "${\$self->api_url}/token?assertion=${\$self->csrf_token}";
-    $url = $uri_encoder->encode( $url );
+    my $url = URI->new( "${\$self->api_url}/token" );
+    $url->query_form(assertion => $self->csrf_token);
     $response = $self->ua->get( $url );
     $self->token($response->content);
 
     return 0;
+}
+
+=head2 search(query)
+
+Generalized interface to GET /api/search
+
+Generalized query function.
+
+query is a hash ref with the following optional keys 
+as define din the hypothes.is HTTP API:
+ * limit
+ * offset
+ * uri
+ * text
+ * quote
+ * user
+
+=cut
+
+#FIXME: need to implement some form of recursion
+#to scan over multiple pages (probably as a generator)
+sub search {
+    my ($self, $query) = @_;
+
+    my $h = HTTP::Headers->new;
+    $h->header(
+        'content-type' => 'application/json;charset=UTF-8', 
+        'x-csrf-token' => $self->csrf_token,
+    );
+    if ( defined $query->{ 'uri' } ) {
+        $query->{ 'uri' } = $self->uri_encoder->encode(
+            $query->{ 'uri' }
+        );
+    }
+
+    my $url = URI->new( "${\$self->api_url}/search" );
+    $url->query_form($query);
+    my $response;
+    my $json_content;
+    do {
+        $response = $self->ua->get( $url );
+        #$json_content = $json->decode($response->content);
+        #DEBUG:
+        print $response->content;
+    } while (length $json_content->{ 'rows' } > 0);
+
 }
 
 =head1 AUTHOR
