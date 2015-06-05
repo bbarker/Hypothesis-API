@@ -322,6 +322,29 @@ Brandon E. Barker, C<< <brandon.barker at cornell.edu> >>
 
 Created  06/2015
 
+Licensed under the Apache License, Version 2.0 (the "Apache License");
+also licensed under the Artistic License 2.0 (the "Artistic License").
+you may not use this file except in compliance with one of
+these two licenses. You may obtain a copy of the Apache License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Alternatively a copy of the Apache License should be available in the
+LICENSE-2.0.txt file found in this source code repository.
+
+You may obtain a copy of the Artistic License at
+
+    http://www.perlfoundation.org/artistic_license_2_0
+
+Alternatively a copy of the Artistic License should be available in the
+artistic-2_0.txt file found in this source code repository.
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the Apache License or Artistic License for the specific language 
+governing permissions and limitations under the licenses.
+
 =head1 BUGS
 
 Please report any bugs or feature requests to C<bug-hypothesis-api at rt.cpan.org>, or through
