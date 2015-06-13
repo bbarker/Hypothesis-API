@@ -23,9 +23,11 @@ use URI::Encode;
 #DEBUG
 use Data::Dumper;
 
+=pod
+
 =head1 NAME
 
-Hypothesis::API
+Hypothesis::API - Wrapper for the hypothes.is web (HTTP) API.
 
 =head1 VERSION
 
@@ -37,7 +39,7 @@ our $VERSION = '0.01';
 
 =head1 SYNOPSIS
 
-A Perl wrapper for the hypothes.is web (HTTP) API.
+A Perl wrapper and utility functions for the hypothes.is web (HTTP) API.
 
     use Hypothesis::API;
 
@@ -79,23 +81,27 @@ has 'app_url' => (
 );
 
 has 'username' => (
-    is         => 'rw',
+    is         => 'ro',
     predicate  => 'has_username',
 );
 
 has 'password' => (
-    is         => 'rw',
+    is         => 'ro',
     predicate  => 'has_password',
 );
 
 has 'token' => (
-    is         => 'rw',
+    is         => 'ro',
     predicate  => 'has_token',
+    writer     => '_set_token',
+    init_arg => undef,
 );
 
 has 'csrf_token' => (
-    is           => 'rw',
+    is           => 'ro',
     predicate    => 'has_csrf_token',
+    writer       => '_set_csrf_token',
+    init_arg => undef,
 );
 
 has 'ua' => (
@@ -114,7 +120,6 @@ has 'uri_encoder' => (
     },
     predicate => 'has_uri_encoder',
 );
-
 
 around BUILDARGS => sub {
     my $orig  = shift;
@@ -241,7 +246,7 @@ sub login {
     $cookie_jar->extract_cookies( $response );
     my %cookies = CGI::Cookie->parse($cookie_jar->as_string);
     if (exists $cookies{'Set-Cookie3: XSRF-TOKEN'}) {
-        $self->csrf_token($cookies{'Set-Cookie3: XSRF-TOKEN'}->value); 
+        $self->_set_csrf_token($cookies{'Set-Cookie3: XSRF-TOKEN'}->value); 
     } else {
         warn("Login failed: couldn't obtain CSRF token.");
         return -1;
@@ -265,12 +270,12 @@ sub login {
     my $url = URI->new( "${\$self->api_url}/token" );
     $url->query_form(assertion => $self->csrf_token);
     $response = $self->ua->get( $url );
-    $self->token($response->content);
+    $self->_set_token($response->content);
 
     return 0;
 }
 
-=head2 search(query)
+=head2 search(query, page_size)
 
 Generalized interface to GET /api/search
 
@@ -285,34 +290,74 @@ as define din the hypothes.is HTTP API:
  * quote
  * user
 
+page_size is an additional parameter related to $query->limit
+and $query->offset, which specifies the number of annotations
+to fetch at a time, but does not override the spirit of either
+of the $query parameters
+
 =cut
 
 #FIXME: need to implement some form of recursion
 #to scan over multiple pages (probably as a generator)
 sub search {
-    my ($self, $query) = @_;
+    my ($self, $query, $page_size) = @_;
 
     my $h = HTTP::Headers->new;
     $h->header(
         'content-type' => 'application/json;charset=UTF-8', 
         'x-csrf-token' => $self->csrf_token,
     );
+    if (not defined $query) {
+        $query = {};
+    }
     if ( defined $query->{ 'uri' } ) {
         $query->{ 'uri' } = $self->uri_encoder->encode(
             $query->{ 'uri' }
         );
     }
 
-    my $url = URI->new( "${\$self->api_url}/search" );
-    $url->query_form($query);
-    my $response;
-    my $json_content;
-    do {
-        $response = $self->ua->get( $url );
-        #$json_content = $json->decode($response->content);
-        #DEBUG:
-        print $response->content;
-    } while (length $json_content->{ 'rows' } > 0);
+    my $done = 0;
+    my $next_buf_start;
+    my $num_returned = 0;
+    my $limit_orig = $query->{ 'limit' };
+    if (defined $page_size) {
+        $query->{ 'limit' }  =  $page_size + 1;
+    }
+
+    my @annotation_buff = ();
+    return sub {
+        $done = 1 if (defined $limit_orig and $num_returned >= $limit_orig);
+        if (@annotation_buff == 0 && not $done) {
+            print "fetching some more from server!\n";
+            #Need to refill response buffer
+            if (defined $page_size) {
+                $query->{ 'offset' } += $page_size;
+            }
+            my $url = URI->new( "${\$self->api_url}/search" );
+            $url->query_form($query);
+            my $response;
+            my $json_content;
+            $response = $self->ua->get( $url );
+            $json_content = $json->decode($response->content);
+            @annotation_buff = @{$json_content->{ 'rows' }};
+            #TODO: Add a search_id check for last element; 
+            #TODO  warn and return undef otherwise?
+            if (defined $page_size && @annotation_buff > $page_size) {
+                if (defined $next_buf_start && 
+                    $next_buf_start->{'id'} ne $annotation_buff[0]->{'id'}) 
+                {
+                    warn("alignment off; may return duplicates\n");
+                }
+                $next_buf_start = pop @annotation_buff;
+            }
+            $done = 1 if (@annotation_buff == 0);
+            #DEBUG:
+            # print $response->content;
+        }
+        $num_returned++;
+        return undef if $done;
+        return shift @annotation_buff;
+    }
 
 }
 
@@ -357,7 +402,6 @@ automatically be notified of progress on your bug as I make changes.
 You can find documentation for this module with the perldoc command.
 
     perldoc Hypothesis::API
-
 
 You can also look for information at:
 
