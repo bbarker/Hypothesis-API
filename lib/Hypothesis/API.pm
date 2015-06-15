@@ -8,6 +8,7 @@ use warnings;
 use namespace::autoclean;
 use Moose;
 use Storable qw( dclone );
+#use Try::Tiny;
 
 use CGI::Cookie;
 use HTTP::Cookies;
@@ -22,7 +23,7 @@ use URI::Encode;
 
 #DEBUG
 use Data::Dumper;
-
+my $VERB = 0;
 =pod
 
 =head1 NAME
@@ -167,7 +168,6 @@ sub create {
     my $payload_out = dclone $payload;
     my $user = $self->username;
     my $user_acct = "acct:$user\@hypothes.is";
-    print $user_acct . "\n";
     $payload_out->{'user'} = $user_acct;
     if (not exists $payload->{'permissions'}) {
         $payload_out->{'permissions'} = { 
@@ -275,6 +275,41 @@ sub login {
     return 0;
 }
 
+
+=head2 read_id(id)
+
+Interface to GET /api/annotations/<id>
+
+Returns the annotation for a given annotation id if id is defined or
+nonempty. Otherwise (in an effort to remain well-typed) returns the
+first annotation on the list returned from hypothes.is. At the time of
+this writing, this functionality of empty 'search' and 'read' requests
+are nearly identical (aside from the outer container) 
+in the HTTP API, but in this Perl API, 'read'
+returns a scalar value and 'search' returns an array.
+
+=cut
+
+sub read_id {
+    my ($self, $id) = @_;
+    if (not defined $id) {
+        $id = q();
+    }
+    my $url = URI->new( "${\$self->api_url}/annotations/$id" );
+    my $response = $self->ua->get( $url );
+    my $json_content = $json->decode($response->content);
+    my $content_type = ref($json_content);
+    if ($content_type eq "HASH") {
+        return $json_content;
+    } elsif ($content_type eq "ARRAY") {
+        return $json_content->[0];
+    } else {
+        die "Got $content_type; expected an ARRAY or HASH.";
+    }
+}
+
+
+
 =head2 search(query, page_size)
 
 Generalized interface to GET /api/search
@@ -297,8 +332,6 @@ of the $query parameters
 
 =cut
 
-#FIXME: need to implement some form of recursion
-#to scan over multiple pages (probably as a generator)
 sub search {
     my ($self, $query, $page_size) = @_;
 
@@ -310,9 +343,17 @@ sub search {
     if (not defined $query) {
         $query = {};
     }
+    if (not defined $query->{ 'limit' }) {
+        #Default at the time, but need to make explicit here:
+        $query->{ 'limit' } = 20;
+    }
+    if (not defined $page_size) {
+        #Default at the time, but need to make explicit here:
+        $page_size = 20;
+    }
     if ( defined $query->{ 'uri' } ) {
         $query->{ 'uri' } = $self->uri_encoder->encode(
-            $query->{ 'uri' }
+           $query->{ 'uri' }
         );
     }
 
@@ -320,21 +361,17 @@ sub search {
     my $next_buf_start;
     my $num_returned = 0;
     my $limit_orig = $query->{ 'limit' };
-    if (defined $page_size) {
-        $query->{ 'limit' }  =  $page_size + 1;
-    }
+    $query->{ 'limit' }  =  $page_size + 1;
 
     my @annotation_buff = ();
     return sub {
         $done = 1 if (defined $limit_orig and $num_returned >= $limit_orig);
         if (@annotation_buff == 0 && not $done) {
-            print "fetching some more from server!\n";
+            print "fetching annotations from server.\n" if $VERB > 0;
             #Need to refill response buffer
-            if (defined $page_size) {
-                $query->{ 'offset' } += $page_size;
-            }
             my $url = URI->new( "${\$self->api_url}/search" );
             $url->query_form($query);
+            print $url, "\n" if $VERB > 1;
             my $response;
             my $json_content;
             $response = $self->ua->get( $url );
@@ -351,8 +388,10 @@ sub search {
                 $next_buf_start = pop @annotation_buff;
             }
             $done = 1 if (@annotation_buff == 0);
-            #DEBUG:
-            # print $response->content;
+            if (defined $page_size) {
+                $query->{ 'offset' } += $page_size;
+            }
+             print $response->content if $VERB > 5;
         }
         $num_returned++;
         return undef if $done;
