@@ -21,9 +21,12 @@ use URI::Encode;
 # For better performance, also install:
 # JSON::XS
 
-#DEBUG
+# DEBUG
 use Data::Dumper;
-my $VERB = 0;
+#
+# 0 = None, 5 = Max:
+my $VERB = 0; 
+
 =pod
 
 =head1 NAME
@@ -63,11 +66,6 @@ Currently nothing.
 my $json = JSON->new->allow_nonref;
 $json->pretty(1);
 $json->canonical(1); 
-
-# my $uri_encoder = URI::Encode->new( { 
-#     encode_reserved => 0, 
-#     double_encode => 0, 
-# } );
 
 has 'api_url' => (
     is        => 'ro',
@@ -215,7 +213,6 @@ sub create {
     my $url = URI->new( "${\$self->api_url}/annotations" );
     my $response = $self->ua->post( $url, Content => $data );
     if ($response->code == 200) {
-        #print Dumper($response->content);
         my $json_content = $json->decode($response->content);
         if (exists $json_content->{'id'}) {
             return $json_content->{'id'};
@@ -366,12 +363,12 @@ sub search {
     my @annotation_buff = ();
     return sub {
         $done = 1 if (defined $limit_orig and $num_returned >= $limit_orig);
-        if (@annotation_buff == 0 && not $done) {
-            print "fetching annotations from server.\n" if $VERB > 0;
+        QUERY: if (@annotation_buff == 0 && not $done) {
+            warn "fetching annotations from server.\n" if $VERB > 0;
             #Need to refill response buffer
             my $url = URI->new( "${\$self->api_url}/search" );
             $url->query_form($query);
-            print $url, "\n" if $VERB > 1;
+            warn $url, "\n" if $VERB > 1;
             my $response;
             my $json_content;
             $response = $self->ua->get( $url );
@@ -379,19 +376,22 @@ sub search {
             @annotation_buff = @{$json_content->{ 'rows' }};
             #TODO: Add a search_id check for last element; 
             #TODO  warn and return undef otherwise?
-            if (defined $page_size && @annotation_buff > $page_size) {
-                if (defined $next_buf_start && 
-                    $next_buf_start->{'id'} ne $annotation_buff[0]->{'id'}) 
-                {
-                    warn("alignment off; may return duplicates\n");
+            if (@annotation_buff > $page_size) {
+                if (defined $next_buf_start) {
+                    while ($next_buf_start->{'id'} ne $annotation_buff[0]->{'id'}) {
+                        warn "mismatch: scanning for last seen id\n" if $VERB > 0;
+                        shift @annotation_buff;
+                        if (@annotation_buff == 0) {
+                            $query->{ 'offset' } += $page_size;
+                            goto QUERY;
+                        }
+                    }
                 }
                 $next_buf_start = pop @annotation_buff;
             }
             $done = 1 if (@annotation_buff == 0);
-            if (defined $page_size) {
-                $query->{ 'offset' } += $page_size;
-            }
-             print $response->content if $VERB > 5;
+            $query->{ 'offset' } += $page_size;
+            warn $response->content if $VERB > 5;
         }
         $num_returned++;
         return undef if $done;
