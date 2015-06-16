@@ -11,7 +11,12 @@ use Term::ReadKey;
 my $H;
 my $test_uri = 'https://github.com/bbarker/Hypothesis-API/blob/master/xt/Testbed.md';
 
-plan tests => 5;
+#
+# 0 = None, 5 = Max:
+my $VERB = 5; 
+
+
+plan tests => 8;
 
 sub init_h_0 {
 
@@ -75,8 +80,10 @@ sub login {
     pass("login succeeded.");
 }
 
+#
+# Assumes already logged in.
+#
 sub create_simple {
-    #Assumes already logged in.
     
     my $payload = {
         "uri"  => $test_uri,
@@ -92,17 +99,68 @@ sub create_simple {
         print "annotation id is: $retval\n";
     }
     pass("create succeeded.");
+    return $retval;
 }
+
+
+
+sub delete_unauth {
+    my ($id) = @_;
+
+    my $Htmp = Hypothesis::API->new;
+    if( $Htmp->delete_id($id) ) {
+        fail("Shouldn't be able to delete without authenticating!");
+    } else {
+        pass("Delete without authentication unsuccessful.");
+    }
+}
+
+#
+# Assumes already logged in.
+#
+sub delete_simple {
+    my ($id) = @_;
+
+    if ($VERB > 2) {
+        warn("Waiting 10 seconds to allow checking the webpage.");
+        sleep(10);
+    }
+    if( $H->delete_id($id) ) {
+        pass("Deletion of newly created annotation successful.");
+    } else {
+        fail("Unable to delete newly created annotation while authenticated!");
+    }
+}
+
+#
+# At the time of writing, behavior not specified by API.
+#
+sub delete_invalid_id {
+    my ($id) = @_;
+
+    if( $H->delete_id($id . "___xyz123___") ) {
+        fail("Is returning true if attempting to delete an invalid id.");
+    } else {
+        pass("Is returning false if attempting to delete an invalid id.");
+    }
+}
+
+
 
 
 TODO: {
     init_h_0;
     undef $H;
+
     init_h_1;
     undef $H;
+
     init_h_2;
     login;
-    create_simple;
+    my $test_id = create_simple;
+    delete_unauth($test_id);
+    delete_simple($test_id);
+    delete_invalid_id($test_id);
 
 }
 

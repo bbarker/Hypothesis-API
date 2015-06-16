@@ -8,7 +8,7 @@ use warnings;
 use namespace::autoclean;
 use Moose;
 use Storable qw( dclone );
-#use Try::Tiny;
+use Try::Tiny;
 
 use CGI::Cookie;
 use HTTP::Cookies;
@@ -22,7 +22,7 @@ use URI::Encode;
 # JSON::XS
 
 # DEBUG
-use Data::Dumper;
+# use Data::Dumper;
 #
 # 0 = None, 5 = Max:
 my $VERB = 0; 
@@ -126,7 +126,7 @@ around BUILDARGS => sub {
 
     if ( @_ >= 2 ) {
         if ( @_ > 2) {
-            warn("At most two arguments expected in constructor.");
+            warn "At most two arguments expected in constructor.\n";
         }
         return $class->$orig( username => $_[0], password => $_[1] );
     } elsif ( @_ == 1 && !ref $_[0] ) {
@@ -156,11 +156,11 @@ sub create {
     my ($self, $payload) = @_;
 
     if (ref($payload) ne "HASH") {
-        warn('payload is not a hashref');
+        warn 'Payload is not a hashref.\n';
         return -1;
     }
     if (not exists $payload->{'uri'}) {
-        warn("payload does not contain a 'uri' key to be annotated");
+        warn "Payload does not contain a 'uri' key to be annotated.\n";
         return -1;
     }
     my $payload_out = dclone $payload;
@@ -225,6 +225,54 @@ sub create {
 }
 
 
+=head2 delete_id(id)
+
+Interface to DELETE /api/annotations/<id>
+
+Given an annotation id, returns a boolean value indicating whether or
+not the annotation for that id has been successfully delete (1 = yes,
+0 = no);
+
+=cut
+
+sub delete_id {
+    my ($self, $id) = @_;
+    if (not defined $id) {
+        warn "No id given to delete.\n";
+        return 0;
+    }
+    my $url = URI->new( "${\$self->api_url}/annotations/$id" );
+    my $response = $self->ua->delete( $url );
+    my $json_content;
+    my $success = try{
+        $json_content = $json->decode($response->content);
+    } catch {
+        warn "Trouble decoding JSON: $_\n";
+        return 0;
+    };
+    if (not $success) {
+        return 0;
+    }
+    my $content_type = ref($json_content);
+    if ($content_type eq "HASH") {
+        if (defined $json_content->{'deleted'}) {
+            if ($json_content->{'deleted'}) {
+                return 1;
+            } elsif (not $json_content->{'deleted'}) {
+                return 0;
+            } else { # Never reached in current implementation
+                warn "unexpected deletion status: ${\$json_content->{'deleted'}}";
+                return 0;
+            }
+        } else {
+            die "Received unexpected object: no 'deleted' entry present.";
+        }
+    } else {
+        die "Got $content_type; expected an ARRAY or HASH.";
+    }
+}
+
+
 =head2 login
 
 Proceeds to login; on success retrieves and stores 
@@ -245,7 +293,7 @@ sub login {
     if (exists $cookies{'Set-Cookie3: XSRF-TOKEN'}) {
         $self->_set_csrf_token($cookies{'Set-Cookie3: XSRF-TOKEN'}->value); 
     } else {
-        warn("Login failed: couldn't obtain CSRF token.");
+        warn "Login failed: couldn't obtain CSRF token.";
         return -1;
     }
 
