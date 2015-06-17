@@ -1,5 +1,11 @@
 Revision history for Hypothesis-API
 
-0.01    2015-06-XX/time
-        First release supporting XX, XX, and XX.
+0.01    2015-06-17
+        First release; supports:
+        * create
+        * delete
+        * login
+        * read
+        * search
+
 

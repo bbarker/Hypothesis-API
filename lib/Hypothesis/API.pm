@@ -479,9 +479,15 @@ governing permissions and limitations under the licenses.
 
 =head1 BUGS
 
-Please report any bugs or feature requests to C<bug-hypothesis-api at rt.cpan.org>, or through
-the web interface at L<http://rt.cpan.org/NoAuth/ReportBug.html?Queue=Hypothesis-API>.  I will be notified, and then you'll
+Please report any bugs or feature requests at L<https://github.com/bbarker/Hypothesis-API/issues>.
+Alternatively, you may send them to C<bug-hypothesis-api at rt.cpan.org>, or through
+the web interface at L<http://rt.cpan.org/NoAuth/ReportBug.html?Queue=Hypothesis-API>, but this
+is not preferred.  In either case, I will be notified, and then you'll
 automatically be notified of progress on your bug as I make changes.
+
+=head1 REPOSITORY
+
+L<https://github.com/bbarker/Hypothesis-API>
 
 
 =head1 SUPPORT

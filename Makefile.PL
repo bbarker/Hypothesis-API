@@ -9,6 +9,16 @@ WriteMakefile(
     VERSION_FROM     => 'lib/Hypothesis/API.pm',
     ABSTRACT_FROM    => 'lib/Hypothesis/API.pm',
     LICENSE          => 'artistic_2',
+    META_MERGE => {
+        'meta-spec' => { version => 2 },
+        resources => {
+            repository => {
+                 type => 'git',
+                 url  => 'https://github.com/bbarker/Hypothesis-API.git',
+                 web  => 'https://github.com/bbarker/Hypothesis-API',
+            },
+        },
+    },
     PL_FILES         => {},
     MIN_PERL_VERSION => 5.006,
     CONFIGURE_REQUIRES => {
