@@ -32,6 +32,17 @@
       },
       "runtime" : {
          "requires" : {
+            "CGI::Cookie" : "0",
+            "HTTP::Cookies" : "0",
+            "HTTP::Request" : "0",
+            "JSON" : "0",
+            "LWP::UserAgent" : "0",
+            "Moose" : "0",
+            "Storable" : "0",
+            "Try::Tiny" : "0",
+            "URI" : "0",
+            "URI::Encode" : "0",
+            "namespace::autoclean" : "0",
             "perl" : "5.006"
          }
       }

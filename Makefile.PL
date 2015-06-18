@@ -27,10 +27,20 @@ WriteMakefile(
     BUILD_REQUIRES => {
         'Test::More' => 0,
     },
-    PREREQ_PM => {
-        #'ABC'              => 1.6,
-        #'Foo::Bar::Module' => 5.0401,
-    },
+    #For below, See also cpanfile for alternative use
+    PREREQ_PM => { #Simple way to find minimal req version?
+        'namespace::autoclean'  => 0.0,
+        'Moose'                 => 0.0,
+        'Storable'              => 0.0,
+        'Try::Tiny'             => 0.0,
+        'CGI::Cookie'           => 0.0,
+        'HTTP::Cookies'         => 0.0,
+        'HTTP::Request'         => 0.0,
+        'JSON'                  => 0.0,
+        'LWP::UserAgent'        => 0.0,
+        'URI'                   => 0.0,
+        'URI::Encode'           => 0.0,
+    }, 
     dist  => { COMPRESS => 'gzip -9f', SUFFIX => 'gz', },
     clean => { FILES => 'Hypothesis-API-*' },
 );
