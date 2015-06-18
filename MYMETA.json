@@ -55,6 +55,6 @@
          "web" : "https://github.com/bbarker/Hypothesis-API"
       }
    },
-   "version" : "0.01",
+   "version" : "0.04",
    "x_serialization_backend" : "JSON::PP version 2.27200"
 }
