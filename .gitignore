@@ -10,15 +10,26 @@ Build.bat
 /Makefile
 /Makefile.old
 /MANIFEST.bak
-/META.yml
-/META.json
-/MYMETA.*
 nytprof.out
 /pm_to_blib
 *.o
 *.bs
 /_eumm/
 
+#
+# I believe these can be kept for convenience;
+# this should allow github-generated tarballs
+# to be downloaded and then directly uploaded 
+# to CPAN/PAUSE:
+#
+# /META.yml
+# /META.json
+# /MYMETA.*
 
+
+#
 #Generated files
+#
 *~
+
+

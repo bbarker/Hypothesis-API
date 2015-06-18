@@ -45,16 +45,42 @@ our $VERSION = '0.01';
 
 A Perl wrapper and utility functions for the hypothes.is web (HTTP) API.
 
+Create a hypothes.is object.
+
     use Hypothesis::API;
 
     my $H = Hypothesis::API->new();
 
-    # or if user-specific queries are needed:
+    # or if user-specific actions without login are needed (no known uses yet):
     my $H = Hypothesis::API->new($username);
 
     # or if login is needed (usually for annotator-store alterations)
     my $H = Hypothesis::API->new($username, $password);
-    $H->login;
+
+
+Login-required functionality:
+
+    $H->login; 
+
+    my $payload = {
+        "uri"  => 'http://my.favorite.edu/doc.html',
+        "text" => "testing create in hypothes.is API"
+    };
+    my $id = $H->create($payload);
+    $H->delete_id($id);
+
+Search functionality (no login needed):
+
+    my $annotation = $H->read_id($id);
+    die if ($annotation->{'id'} ne $id);
+
+    my $page_size = 20;
+    my $iter = $H->search({limit => 100}, $page_size);
+    my @annotations;
+    while ( my $item = $iter->() ) {
+        push @annotations, $item;
+        
+    }
 
 
 =head1 EXPORT
@@ -138,7 +164,7 @@ around BUILDARGS => sub {
 
 =head1 SUBROUTINES/METHODS
 
-=head2 create($payload)
+=head2 create(\%payload)
 
 Generalized interface to POST /api/annotations
 
@@ -225,7 +251,7 @@ sub create {
 }
 
 
-=head2 delete_id(id)
+=head2 delete_id($id)
 
 Interface to DELETE /api/annotations/<id>
 
@@ -321,7 +347,7 @@ sub login {
 }
 
 
-=head2 read_id(id)
+=head2 read_id($id)
 
 Interface to GET /api/annotations/<id>
 
@@ -355,14 +381,14 @@ sub read_id {
 
 
 
-=head2 search(query, page_size)
+=head2 search(\%query, $page_size)
 
 Generalized interface to GET /api/search
 
 Generalized query function.
 
 query is a hash ref with the following optional keys 
-as define din the hypothes.is HTTP API:
+as defined in the hypothes.is HTTP API:
  * limit
  * offset
  * uri
@@ -373,7 +399,7 @@ as define din the hypothes.is HTTP API:
 page_size is an additional parameter related to $query->limit
 and $query->offset, which specifies the number of annotations
 to fetch at a time, but does not override the spirit of either
-of the $query parameters
+of the $query parameters.
 
 =cut
 
@@ -520,6 +546,8 @@ L<http://search.cpan.org/dist/Hypothesis-API/>
 
 
 =head1 ACKNOWLEDGEMENTS
+
+We are thankful for support from the Alfred P. Sloan Foundation.
 
 =cut
 
