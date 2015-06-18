@@ -35,7 +35,7 @@ Hypothesis::API - Wrapper for the hypothes.is web (HTTP) API.
 
 =head1 VERSION
 
-Version 0.01
+Version 0.03
 
 =cut
 
