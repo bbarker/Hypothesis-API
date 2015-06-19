@@ -1,7 +1,7 @@
 Revision history for Hypothesis-API
 
 0.06    2015-06-18
-        Fixed metadata to now include META but not MYMETA.
+        Fixed metadata to now META as well as MYMETA.
 
 0.05    2015-06-18
         Updating read_id and corresponding tests to reflect 
