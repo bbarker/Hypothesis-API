@@ -1,5 +1,8 @@
 Revision history for Hypothesis-API
 
+0.07    2015-06-19
+        Now properly include LWP::Protocol::https as a dependency.
+
 0.06    2015-06-18
         Fixed metadata to now include META as well as MYMETA.
 

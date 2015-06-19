@@ -38,6 +38,7 @@ WriteMakefile(
         'HTTP::Cookies'         => 0.0,
         'HTTP::Request'         => 0.0,
         'JSON'                  => 0.0,
+	'LWP::Protocol::https'  => 0.0,
         'LWP::UserAgent'        => 0.0,
         'URI'                   => 0.0,
         'URI::Encode'           => 0.0,

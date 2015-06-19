@@ -36,6 +36,7 @@
             "HTTP::Cookies" : "0",
             "HTTP::Request" : "0",
             "JSON" : "0",
+            "LWP::Protocol::https" : "0",
             "LWP::UserAgent" : "0",
             "Moose" : "0",
             "Storable" : "0",
@@ -56,5 +57,5 @@
       }
    },
    "version" : "0.06",
-   "x_serialization_backend" : "JSON::PP version 2.27200"
+   "x_serialization_backend" : "JSON::PP version 2.27202"
 }
