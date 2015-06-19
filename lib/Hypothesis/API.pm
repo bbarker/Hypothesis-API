@@ -35,11 +35,11 @@ Hypothesis::API - Wrapper for the hypothes.is web (HTTP) API.
 
 =head1 VERSION
 
-Version 0.04
+Version 0.05
 
 =cut
 
-our $VERSION = '0.04';
+our $VERSION = '0.05';
 
 =head1 SYNOPSIS
 
@@ -355,8 +355,7 @@ Returns the annotation for a given annotation id if id is defined or
 nonempty. Otherwise (in an effort to remain well-typed) returns the
 first annotation on the list returned from hypothes.is. At the time of
 this writing, this functionality of empty 'search' and 'read' requests
-are nearly identical (aside from the outer container) 
-in the HTTP API, but in this Perl API, 'read'
+are identical in the HTTP API, but in this Perl API, 'read'
 returns a scalar value and 'search' returns an array.
 
 =cut
@@ -371,11 +370,15 @@ sub read_id {
     my $json_content = $json->decode($response->content);
     my $content_type = ref($json_content);
     if ($content_type eq "HASH") {
-        return $json_content;
-    } elsif ($content_type eq "ARRAY") {
-        return $json_content->[0];
+        if (defined $json_content->{'id'}) {
+            return $json_content;
+        } elsif (defined $json_content->{'rows'}) {
+            return $json_content->{'rows'}->[0];
+        } else {
+            die "Don't know how to find the annotation.";
+        }
     } else {
-        die "Got $content_type; expected an ARRAY or HASH.";
+        die "Got $content_type; expected a HASH.";
     }
 }
 

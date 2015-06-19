@@ -1,6 +1,12 @@
 Revision history for Hypothesis-API
 
-0.04    2015-06-17
+0.05    2015-06-18
+        Updating read_id and corresponding tests to reflect 
+        server-side change in hypothes.is: /api/annotations/
+        with no parameters now appears identical to
+        /api/search with no parameters
+
+0.04    2015-06-18
         Updated documentation and metadata.
 
 0.01    2015-06-17

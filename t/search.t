@@ -135,7 +135,7 @@ sub read_empty {
     }   
 }
 
-sub read_id {
+sub read_id_test {
     
     my $item = $H->read_id($rand_id);
     if (defined $item->{'id'}) {
@@ -158,6 +158,6 @@ TODO: {
     search_30_by_5incs;
     search_google_com;
     read_empty;
-    read_id;
+    read_id_test;
 }
 
