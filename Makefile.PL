@@ -2,6 +2,7 @@ use 5.006;
 use strict;
 use warnings;
 use ExtUtils::MakeMaker;
+use File::Copy;
 
 WriteMakefile(
     NAME             => 'Hypothesis::API',
@@ -44,3 +45,10 @@ WriteMakefile(
     dist  => { COMPRESS => 'gzip -9f', SUFFIX => 'gz', },
     clean => { FILES => 'Hypothesis-API-*' },
 );
+
+
+#
+# Do any postprocessing here
+#
+copy('MYMETA.json', 'META.json');
+copy('MYMETA.yml', 'META.yml');
