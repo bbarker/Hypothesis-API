@@ -1,5 +1,9 @@
 Revision history for Hypothesis-API
 
+0.08    2015-06-20
+        Removed MYMETA.* from distribution.
+	Removed unnecessary 'use Term::ReadKey' in search.t.
+
 0.07    2015-06-19
         Now properly include LWP::Protocol::https as a dependency.
 

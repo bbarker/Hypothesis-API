@@ -6,8 +6,6 @@ use Test::More;
 
 use Hypothesis::API;
 
-use Term::ReadKey;
-
 my $H;
 my $test_uri = 'https://github.com/bbarker/Hypothesis-API/blob/master/xt/Testbed.md';
 my $rand_user;
