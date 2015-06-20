@@ -53,5 +53,3 @@ WriteMakefile(
 #
 copy('MYMETA.json', 'META.json');
 copy('MYMETA.yml', 'META.yml');
-unlink('MYMETA.json');
-unlink('MYMETA.yml');
