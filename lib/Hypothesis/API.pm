@@ -272,6 +272,7 @@ sub delete_id {
         $json_content = $json->decode($response->content);
     } catch {
         warn "Trouble decoding JSON: $_\n";
+        warn $response->content;
         return 0;
     };
     if (not $success) {
