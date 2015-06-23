@@ -449,8 +449,6 @@ sub search {
             $response = $self->ua->get( $url );
             $json_content = $json->decode($response->content);
             @annotation_buff = @{$json_content->{ 'rows' }};
-            #TODO: Add a search_id check for last element; 
-            #TODO  warn and return undef otherwise?
             if (@annotation_buff > $page_size) {
                 if (defined $next_buf_start) {
                     while ($next_buf_start->{'id'} ne $annotation_buff[0]->{'id'}) {
