@@ -79,9 +79,7 @@ Search functionality (no login needed):
     my @annotations;
     while ( my $item = $iter->() ) {
         push @annotations, $item;
-        
     }
-
 
 =head1 EXPORT
 
