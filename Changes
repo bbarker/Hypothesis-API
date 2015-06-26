@@ -1,5 +1,9 @@
 Revision history for Hypothesis-API
 
+0.09    2015-06-26
+	Added 'update_id' function so annotations can be updated.
+	Minor doc change for search to include 'uri.parts'.
+
 0.08    2015-06-20
         Removed MYMETA.* from distribution.
 	Removed unnecessary 'use Term::ReadKey' in search.t.
@@ -26,5 +30,3 @@ Revision history for Hypothesis-API
         * login
         * read
         * search
-
-

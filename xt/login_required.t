@@ -10,13 +10,14 @@ use Term::ReadKey;
 
 my $H;
 my $test_uri = 'https://github.com/bbarker/Hypothesis-API/blob/master/xt/Testbed.md';
+my $test_uri2 = 'https://github.com/bbarker/Hypothesis-API/blob/master/xt/Testbed2.md';
 
 #
 # 0 = None, 5 = Max:
 my $VERB = 5; 
 
 
-plan tests => 8;
+plan tests => 9;
 
 sub init_h_0 {
 
@@ -103,6 +104,24 @@ sub create_simple {
 }
 
 
+#
+# Assumes already logged in.
+#
+sub update_url {
+    my ($id, $new_url) = @_;
+
+    if ($VERB > 2) {
+        warn "Waiting 10 seconds to allow checking the webpages:\n" .
+	     "$test_uri -> $new_url."; 
+        sleep(10);
+    }
+    if( $H->update_id($id, {url => $new_url}) ) {
+        pass("Update of annotation successful.");
+    } else {
+        fail("Unable to update newly created annotation while authenticated!");
+    }
+}
+
 
 sub delete_unauth {
     my ($id) = @_;
@@ -122,7 +141,7 @@ sub delete_simple {
     my ($id) = @_;
 
     if ($VERB > 2) {
-        warn("Waiting 10 seconds to allow checking the webpage.");
+        warn "Waiting 10 seconds to allow checking the webpage.";
         sleep(10);
     }
     if( $H->delete_id($id) ) {
@@ -158,6 +177,7 @@ TODO: {
     init_h_2;
     login;
     my $test_id = create_simple;
+    update_url($test_id, $test_uri2);
     delete_unauth($test_id);
     delete_simple($test_id);
     delete_invalid_id($test_id);

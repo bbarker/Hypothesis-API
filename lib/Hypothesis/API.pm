@@ -4,7 +4,6 @@ use 5.006;
 use strict;
 use warnings;
 
-#use Attribute::Generator;
 use namespace::autoclean;
 use Moose;
 use Storable qw( dclone );
@@ -35,11 +34,11 @@ Hypothesis::API - Wrapper for the hypothes.is web (HTTP) API.
 
 =head1 VERSION
 
-Version 0.08
+Version 0.09
 
 =cut
 
-our $VERSION = '0.08';
+our $VERSION = '0.09';
 
 =head1 SYNOPSIS
 
@@ -255,7 +254,7 @@ Interface to DELETE /api/annotations/<id>
 
 Given an annotation id, returns a boolean value indicating whether or
 not the annotation for that id has been successfully delete (1 = yes,
-0 = no);
+0 = no).
 
 =cut
 
@@ -394,6 +393,7 @@ as defined in the hypothes.is HTTP API:
  * limit
  * offset
  * uri
+ * uri.parts
  * text
  * quote
  * user
@@ -472,6 +472,49 @@ sub search {
         return shift @annotation_buff;
     }
 
+}
+
+
+=head2 update_id($id, \%payload)
+
+Interface to PUT /api/annotations/<id>
+
+Updates the annotation for a given annotation id if id is defined and
+the user is authenticated and has update permissions. Takes a payload
+as described for 'search'. Only fields specified in the new payload
+are altered; other existing fields should remain unchanged.
+
+Returns a boolean value indicating whether or not the annotation for
+that id has been successfully delete (1 = yes, 0 = no).
+
+=cut
+
+sub update_id {
+    my ($self, $id, $payload) = @_;
+    if (not defined $id) {
+        die "Can only call update if given an id.";
+    }
+    my $data = $json->encode($payload);
+    my $url = URI->new( "${\$self->api_url}/annotations/$id" );
+    my $response = $self->ua->put( $url, $data );
+    my $json_content = $json->decode($response->content);
+    my $content_type = ref($json_content);
+    if ($content_type eq "HASH") {
+        if (defined $json_content->{'updated'}) {
+            if ($json_content->{'updated'}) {
+                return 1;
+            } elsif (not $json_content->{'deleted'}) {
+                return 0;
+            } else { # Never reached in current implementation
+                warn "unexpected update status: ${\$json_content->{'updated'}}";
+                return 0;
+            }
+        } else {
+            die "Received unexpected object: no 'updated' entry present.";
+        }
+    } else {
+        die "Got $content_type; expected an ARRAY or HASH.";
+    }
 }
 
 =head1 AUTHOR
