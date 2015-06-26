@@ -115,7 +115,7 @@ sub update_url {
 	     "$test_uri -> $new_url."; 
         sleep(10);
     }
-    if( $H->update_id($id, {url => $new_url}) ) {
+    if( $H->update_id($id, {'uri' => $new_url}) ) {
         pass("Update of annotation successful.");
     } else {
         fail("Unable to update newly created annotation while authenticated!");

@@ -264,6 +264,13 @@ sub delete_id {
         warn "No id given to delete.\n";
         return 0;
     }
+    my $h = HTTP::Headers->new;
+    $h->header(
+        'content-type' => 'application/json;charset=UTF-8', 
+        'x-csrf-token' => $self->csrf_token,
+        'X-Annotator-Auth-Token' => $self->token, 
+    );
+    $self->ua->default_headers( $h );
     my $url = URI->new( "${\$self->api_url}/annotations/$id" );
     my $response = $self->ua->delete( $url );
     my $json_content;
@@ -495,8 +502,15 @@ sub update_id {
         die "Can only call update if given an id.";
     }
     my $data = $json->encode($payload);
+    my $h = HTTP::Headers->new;
+    $h->header(
+        'content-type' => 'application/json;charset=UTF-8', 
+        'x-csrf-token' => $self->csrf_token,
+        'X-Annotator-Auth-Token' => $self->token, 
+    );
+    $self->ua->default_headers( $h );
     my $url = URI->new( "${\$self->api_url}/annotations/$id" );
-    my $response = $self->ua->put( $url, $data );
+    my $response = $self->ua->put( $url, Content => $data );
     my $json_content = $json->decode($response->content);
     my $content_type = ref($json_content);
     if ($content_type eq "HASH") {
