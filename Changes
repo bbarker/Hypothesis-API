@@ -3,6 +3,7 @@ Revision history for Hypothesis-API
 0.09    2015-06-26
 	Added 'update_id' function so annotations can be updated.
 	Minor doc change for search to include 'uri.parts'.
+	Slightly improved build procedure regarding META packaging.
 
 0.08    2015-06-20
         Removed MYMETA.* from distribution.
