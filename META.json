@@ -3,7 +3,7 @@
    "author" : [
       "Brandon E. Barker <brandon.barker@cornell.edu>"
    ],
-   "dynamic_config" : 0,
+   "dynamic_config" : 1,
    "generated_by" : "ExtUtils::MakeMaker version 6.66, CPAN::Meta::Converter version 2.150005",
    "license" : [
       "artistic_2"
