@@ -34,11 +34,11 @@ Hypothesis::API - Wrapper for the hypothes.is web (HTTP) API.
 
 =head1 VERSION
 
-Version 0.09
+Version 0.10
 
 =cut
 
-our $VERSION = '0.09';
+our $VERSION = '0.10';
 
 =head1 SYNOPSIS
 
@@ -208,21 +208,7 @@ sub create {
         $payload_out->{'tags'} = undef;
     }
     if (not exists $payload->{'target'}) {
-        $payload_out->{'target'} = {
-            "selector" => [
-                {
-                "start" => undef,
-                "end"   => undef,
-                "type"  => "TextPositionSelector"
-                },  
-                {
-                "type"   => "TextQuoteSelector", 
-                "prefix" => undef,
-                "exact"  => undef,
-                "suffix" => undef
-                },
-            ]
-        };
+        $payload_out->{'target'} = undef;
     }
     
     my $data = $json->encode($payload_out);

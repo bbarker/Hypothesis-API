@@ -1,5 +1,8 @@
 Revision history for Hypothesis-API
 
+0.10    ??
+        Changed null 'target' format so created annotations show in plugin.
+
 0.09    2015-06-26
 	Added 'update_id' function so annotations can be updated.
 	Minor doc change for search to include 'uri.parts'.
