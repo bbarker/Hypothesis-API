@@ -396,6 +396,9 @@ and $query->offset, which specifies the number of annotations
 to fetch at a time, but does not override the spirit of either
 of the $query parameters.
 
+Tries not to return annotations created after initiation
+of the search.
+
 =cut
 
 sub search {
@@ -443,22 +446,34 @@ sub search {
             $response = $self->ua->get( $url );
             $json_content = $json->decode($response->content);
             @annotation_buff = @{$json_content->{ 'rows' }};
-            if (@annotation_buff > $page_size) {
-                if (defined $next_buf_start) {
-                    while ($next_buf_start->{'id'} ne $annotation_buff[0]->{'id'}) {
-                        warn "mismatch: scanning for last seen id\n" if $VERB > 0;
-                        shift @annotation_buff;
-                        if (@annotation_buff == 0) {
-                            $query->{ 'offset' } += $page_size;
-                            goto QUERY;
-                        }
+            if ($limit_orig eq 'Infinity') {
+                # OK, we get the point, but let's get finite.
+                $limit_orig = $json_content->{ 'total' };
+                $query->{ 'limit' } = $json_content->{ 'total' };
+            }
+            if (defined $next_buf_start) {
+                # This assumes that the feed is like a stack: LIFO.
+                # Annotations created after the search call
+                # shouldn't be returned.
+                while ($next_buf_start->{'id'} ne $annotation_buff[0]->{'id'}) {
+                    warn "mismatch: scanning for last seen id\n" if $VERB > 0;
+                    shift @annotation_buff;
+                    if (@annotation_buff == 0) {
+                        $query->{ 'offset' } += $page_size;
+                        goto QUERY;
                     }
                 }
-                $next_buf_start = pop @annotation_buff;
             }
+            $next_buf_start = pop @annotation_buff;
             $done = 1 if (@annotation_buff == 0);
             $query->{ 'offset' } += $page_size;
             warn $response->content if $VERB > 5;
+            # Handle edge case that look-ahead element is the last element:
+            if (($num_returned + 1) == $limit_orig) {
+                print "Testing: hit a last lookahead.\n";
+                $num_returned++;
+                return $next_buf_start;
+            }
         }
         $num_returned++;
         return undef if $done;
