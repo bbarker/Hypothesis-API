@@ -399,7 +399,13 @@ of the $query parameters.
 Tries not to return annotations created after initiation
 of the search.
 
+Note that while this function has been made robust to addition of
+new annotations being created during a query, it is not yet
+robust to deletion of annotations.
+
 =cut
+
+# FIXME: improve handling of deletions
 
 sub search {
     my ($self, $query, $page_size) = @_;
@@ -430,7 +436,7 @@ sub search {
     my $next_buf_start;
     my $num_returned = 0;
     my $limit_orig = $query->{ 'limit' };
-    $query->{ 'limit' }  =  $page_size + 1;
+    $query->{ 'limit' } = $page_size + 1;
 
     my @annotation_buff = ();
     return sub {
@@ -455,7 +461,7 @@ sub search {
                 # This assumes that the feed is like a stack: LIFO.
                 # Annotations created after the search call
                 # shouldn't be returned.
-                while ($next_buf_start->{'id'} ne $annotation_buff[0]->{'id'}) {
+                while (@annotation_buff && $next_buf_start->{'id'} ne $annotation_buff[0]->{'id'}) {
                     warn "mismatch: scanning for last seen id\n" if $VERB > 0;
                     shift @annotation_buff;
                     if (@annotation_buff == 0) {
@@ -470,7 +476,6 @@ sub search {
             warn $response->content if $VERB > 5;
             # Handle edge case that look-ahead element is the last element:
             if (($num_returned + 1) == $limit_orig) {
-                print "Testing: hit a last lookahead.\n";
                 $num_returned++;
                 return $next_buf_start;
             }
