@@ -34,11 +34,11 @@ Hypothesis::API - Wrapper for the hypothes.is web (HTTP) API.
 
 =head1 VERSION
 
-Version 0.10
+Version 0.11
 
 =cut
 
-our $VERSION = '0.10';
+our $VERSION = '0.11';
 
 =head1 SYNOPSIS
 
@@ -475,7 +475,8 @@ sub search {
             $query->{ 'offset' } += $page_size;
             warn $response->content if $VERB > 5;
             # Handle edge case that look-ahead element is the last element:
-            if (($num_returned + 1) == $limit_orig) {
+            if (($num_returned + 1) == $limit_orig 
+                 || $json_content->{ 'total' } == 1 ) {
                 $num_returned++;
                 return $next_buf_start;
             }

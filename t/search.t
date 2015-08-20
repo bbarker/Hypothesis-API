@@ -11,7 +11,7 @@ my $test_uri = 'https://github.com/bbarker/Hypothesis-API/blob/master/xt/Testbed
 my $rand_user;
 my $rand_id;
 
-plan tests => 8;
+plan tests => 9;
 
 sub init_h_0 {
 
@@ -59,6 +59,32 @@ sub search_recent {
 }
 
 
+sub search_page_with_one {
+
+    my $limit = 10;
+    #
+    # Assumption: this page has only one annotation.
+    #
+    my $uri = "https://github.com/bbarker/Hypothesis-API/blob/"
+              . "master/xt/TestOnlyOne.md";
+
+    my $result_iter = $H->search({
+        limit => $limit,
+        uri   => $uri,
+    });
+    my @top_items;
+    while ( my $item = $result_iter->() ) {
+        push @top_items, $item;
+    }
+    if (@top_items != 1) {
+        fail("Expected to see exactly one annotation of this page.");
+    } else {
+        pass("Saw @{[$#top_items+1]} annotations of TestOnlyOne.md.");
+    }
+}
+
+
+
 sub search_30 {
 
     my $limit = 30;
@@ -68,7 +94,7 @@ sub search_30 {
         push @top_items, $item;
     }
     if (@top_items != $limit) {
-        fail("Received $#top_items items instead of $limit items.");
+        fail("Received @{[$#top_items+1]} items instead of $limit items.");
     } else {
         pass("Received $limit items.");
     }
@@ -85,12 +111,13 @@ sub search_30_by_5incs {
         push @top_items, $item;
     }
     if (@top_items != $limit) {
-        fail("Received $#top_items items instead of $limit items.");
+        fail("Received @{[$#top_items+1]} items instead of $limit items.");
     } else {
         my @unique = do { my %seen; grep { !$seen{$_}++ }  @top_items };
         #my @unique = keys { map { $_ => 1 } @top_items }; # requres Perl 5.14+
         if (@top_items != @unique) {
-            fail("Duplicate items returned: only $#unique/$limit unique items.");
+            fail("Duplicate items returned: only @{[$#unique+1]}"
+                ."/$limit unique items.");
         } else {
             pass("Received $limit items.");
         }
@@ -113,7 +140,7 @@ sub search_google_com {
     if (@top_items < 2) {
         fail("Expected to see more than 2 annotations of google.com.");
     } else {
-        pass("Saw $#top_items annotations of google.com.");
+        pass("Saw @{[$#top_items+1]} annotations of google.com.");
     }
 }
 
@@ -152,6 +179,7 @@ TODO: {
     init_h_0;
     test_url_encode_0;
     search_recent;
+    search_page_with_one;
     search_30;
     search_30_by_5incs;
     search_google_com;
