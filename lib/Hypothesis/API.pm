@@ -418,10 +418,6 @@ sub search {
     if (not defined $query) {
         $query = {};
     }
-    if (not defined $query->{ 'limit' }) {
-        #Default at the time, but need to make explicit here:
-        $query->{ 'limit' } = 20;
-    }
     if (not defined $page_size) {
         #Default at the time, but need to make explicit here:
         $page_size = 20;
@@ -433,7 +429,7 @@ sub search {
     }
 
     my $done = 0;
-    my $next_buf_start;
+    my $last_id = undef;
     my $num_returned = 0;
     my $limit_orig = $query->{ 'limit' };
     $query->{ 'limit' } = $page_size + 1;
@@ -447,21 +443,29 @@ sub search {
             my $url = URI->new( "${\$self->api_url}/search" );
             $url->query_form($query);
             warn $url, "\n" if $VERB > 1;
-            my $response;
-            my $json_content;
-            $response = $self->ua->get( $url );
-            $json_content = $json->decode($response->content);
+            my $response = $self->ua->get( $url );
+            my $json_content = $json->decode($response->content);
             @annotation_buff = @{$json_content->{ 'rows' }};
-            if ($limit_orig eq 'Infinity') {
-                # OK, we get the point, but let's get finite.
+            if (not defined $limit_orig or $json_content->{ 'total' } < $limit_orig) {
+                # No limit set or more than total. Set if to the total
+                # so we don't have to try an extra request past the 
+                # total number of results
                 $limit_orig = $json_content->{ 'total' };
-                $query->{ 'limit' } = $json_content->{ 'total' };
+                warn "setting limit_orig=$limit_orig based on total\n" if $VERB > 1;
             }
-            if (defined $next_buf_start) {
+            if (defined $last_id) {
                 # This assumes that the feed is like a stack: LIFO.
                 # Annotations created after the search call
                 # shouldn't be returned.
-                while (@annotation_buff && $next_buf_start->{'id'} ne $annotation_buff[0]->{'id'}) {
+                # 
+                # This is not the first query because $last_id is set and the
+                # offset arranges so that, without the addition of new 
+                # annotations, the first result from the new query will be
+                # the same as the last result of the old query. If it isn't
+                # then we assume that new items have been added to the beginning
+                # and scan forward to find the id. The may be more than one
+                # page of scanning.
+                while (@annotation_buff and $last_id ne $annotation_buff[0]->{'id'}) {
                     warn "mismatch: scanning for last seen id\n" if $VERB > 0;
                     shift @annotation_buff;
                     if (@annotation_buff == 0) {
@@ -469,21 +473,18 @@ sub search {
                         goto QUERY;
                     }
                 }
+                if (@annotation_buff) {
+                    shift @annotation_buff;
+                }
             }
-            $next_buf_start = pop @annotation_buff;
-            $done = 1 if (@annotation_buff == 0);
             $query->{ 'offset' } += $page_size;
             warn $response->content if $VERB > 5;
-            # Handle edge case that look-ahead element is the last element:
-            if (($num_returned + 1) == $limit_orig 
-                 || $json_content->{ 'total' } == 1 ) {
-                $num_returned++;
-                return $next_buf_start;
-            }
         }
+        return undef if ($done or @annotation_buff == 0);
+        my $anno = shift @annotation_buff;
+        $last_id = $anno->{'id'};
         $num_returned++;
-        return undef if $done;
-        return shift @annotation_buff;
+        return $anno;
     }
 
 }
