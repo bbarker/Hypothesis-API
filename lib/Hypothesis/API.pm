@@ -282,7 +282,8 @@ sub delete_id {
                 return 0;
             }
         } else {
-            die "Received unexpected object: no 'deleted' entry present.";
+            warn "Received unexpected object: no 'deleted' entry present.";
+            return 0;
         }
     } else {
         die "Got $content_type; expected an ARRAY or HASH.";
