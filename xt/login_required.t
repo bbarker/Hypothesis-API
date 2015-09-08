@@ -17,7 +17,7 @@ my $test_uri2 = 'https://github.com/bbarker/Hypothesis-API/blob/master/xt/Testbe
 my $VERB = 5; 
 
 
-plan tests => 9;
+plan tests => 10;
 
 sub init_h_0 {
 
@@ -165,6 +165,104 @@ sub delete_invalid_id {
 }
 
 
+#
+# Assumes already logged in.
+#
+# Note quite a unit test since we are testing
+# infinite search AND retrieval of all results
+# present before insertion. 
+#
+# Note also that this test depends on search_total in a 
+# non-atomic way, so the account used for testing should
+# not be creating or deleting annotations elsewhere.
+#
+#
+sub search_infinite_and_insert {
+
+    #TODO: Apparently search does NOT return the exact number of total
+    #TODO: results as returned by search_total, which limits the original
+    #TODO: design and accuracy of this test. Not only can we not check
+    #TODO: for equality between total reported and actual returned, we
+    #TODO: also can't check to see of items returned include new items
+    #TODO: created (which we don't want), since we will always get this
+    #TODO: if total reported is greater than what H gives us.
+
+    my $create_and_get_id = sub {
+        my $create_payload = {
+            "uri"  => $test_uri,
+            "text" => "testing create in hypothes.is API"
+        };
+
+        my $retval = $H->create($create_payload);
+
+        if (length $retval < 4) {
+            fail("create failed: didn't get an id.");
+            return;
+        }
+        return $retval;
+    };
+
+
+    my $limit = 'Infinity';
+    my $pg_size = 3;
+    my $user = 'bbarker';
+    my $result_iter  =       $H->search({limit => $limit, user => $user}, $pg_size);
+    my $finite_limit = $H->search_total({limit => $limit, user => $user}, $pg_size);
+    my $num_new = 8;
+    my @top_items;
+    my @temp_items;
+    my $first = 1;
+    while ( my $item = $result_iter->() ) {
+        push @top_items, $item;
+        if ($first) {
+            $first = 0;
+            print "Inserting new items\n";
+            for (my $ii = 0; $ii < $num_new; $ii++) {
+                my $new_id = $create_and_get_id->();
+                push @temp_items, $new_id;
+            }
+        
+        }
+    }
+
+    my $temp_finite_limit = $H->search_total({limit => $limit, user => $user}, $pg_size);
+    if ($temp_finite_limit <= $finite_limit) {
+        fail("Temporary additions didn't crease finite limit; check test parameters.");
+        return;
+    } else {
+        print "$temp_finite_limit (temp) >= $finite_limit (orig)\n";
+    }
+
+
+    #Cleanup
+    for (my $ii = 0; $ii < $num_new; $ii++) {
+        if (not $H->delete_id($temp_items[$ii])) {
+            fail("Unable to delete newly created annotation while authenticated!");
+        } 
+    }
+
+    # FIXME: Apparently we can't expect equality from H:
+    # if (@top_items != $finite_limit) {
+    #     fail("Received $#top_items items instead of $finite_limit items.");
+    #     return;
+    # }
+    if (@top_items > $finite_limit) {
+        fail("Received more than $finite_limit items");
+        return;
+    }
+
+    my @unique = do { my %seen; grep { !$seen{$_}++ }  @top_items };
+    #my @unique = keys { map { $_ => 1 } @top_items }; # requres Perl 5.14+
+    if (@top_items != @unique) {
+        fail("Duplicate items returned: only $#unique/$finite_limit unique items.");
+        return;
+    } else {
+        pass("Received $#unique unique equal to original limit of $finite_limit items.");
+    }
+
+}
+
+
 
 
 TODO: {
@@ -181,6 +279,7 @@ TODO: {
     delete_unauth($test_id);
     delete_simple($test_id);
     delete_invalid_id($test_id);
+    search_infinite_and_insert;
 
 }
 

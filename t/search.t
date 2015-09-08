@@ -11,7 +11,7 @@ my $test_uri = 'https://github.com/bbarker/Hypothesis-API/blob/master/xt/Testbed
 my $rand_user;
 my $rand_id;
 
-plan tests => 9;
+plan tests => 10;
 
 sub init_h_0 {
 
@@ -55,6 +55,17 @@ sub search_recent {
         }
     } else {
         fail("Didn't get any result results!");
+    }
+}
+
+
+sub search_total {
+    
+    my $total = $H->search_total;
+    if ($total > 0 ) {
+        pass("Reported $total total items.");
+    } else {
+        fail("User element not defined!");
     }
 }
 
@@ -179,6 +190,7 @@ TODO: {
     init_h_0;
     test_url_encode_0;
     search_recent;
+    search_total;
     search_page_with_one;
     search_30;
     search_30_by_5incs;
