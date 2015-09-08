@@ -34,11 +34,11 @@ Hypothesis::API - Wrapper for the hypothes.is web (HTTP) API.
 
 =head1 VERSION
 
-Version 0.11
+Version 0.12
 
 =cut
 
-our $VERSION = '0.11';
+our $VERSION = '0.12';
 
 =head1 SYNOPSIS
 
@@ -80,6 +80,9 @@ Search functionality (no login needed):
         push @annotations, $item;
     }
 
+    my $total = $H->search_total({limit => 100}, $page_size);
+    print "Reported $total total items.\n";
+
 =head1 EXPORT
 
 Currently nothing.
@@ -89,6 +92,12 @@ Currently nothing.
 my $json = JSON->new->allow_nonref;
 $json->pretty(1);
 $json->canonical(1); 
+
+
+#
+# TODO: add getter/setter?
+#
+my $page_size_default = 20;
 
 has 'api_url' => (
     is        => 'ro',
@@ -426,7 +435,7 @@ sub search {
     }
     if (not defined $page_size) {
         #Default at the time, but need to make explicit here:
-        $page_size = 20;
+        $page_size = $page_size_default;
     }
     if ( not defined $query->{ 'limit' } ) {
         #Default at the time, but need to make explicit here:
@@ -451,8 +460,13 @@ sub search {
             my $response = $self->ua->get( $url );
             my $json_content = $json->decode($response->content);
             @annotation_buff = @{$json_content->{ 'rows' }};
+            if (defined $limit_orig and $limit_orig eq 'Infinity') {
+                # OK, we get the point, but let's get finite.
+                $limit_orig = $json_content->{ 'total' };
+                $query->{ 'limit' } = $json_content->{ 'total' };
+            }
             if (not defined $limit_orig or $json_content->{ 'total' } < $limit_orig) {
-                # No limit set or more than total. Set if to the total
+                # No limit set or more than total. Set it to the total
                 # so we don't have to try an extra request past the 
                 # total number of results
                 $limit_orig = $json_content->{ 'total' };
@@ -492,6 +506,62 @@ sub search {
         return $anno;
     }
 
+}
+
+=head2 search_total(\%query, $page_size)
+
+Specific interface to GET /api/search that simply 
+returns the total number of query results. See 
+the search subroutine for more details on parameters.
+
+=cut
+
+sub search_total {
+
+    # Note: try to keep the logic here the same as in the search
+    # function, or possibly remove code duplication.
+    #
+    # Start of code duplication:
+    #
+    my ($self, $query, $page_size) = @_;
+
+    my $h = HTTP::Headers->new;
+    $h->header(
+        'content-type' => 'application/json;charset=UTF-8', 
+        'x-csrf-token' => $self->csrf_token,
+    );
+    if (not defined $query) {
+        $query = {};
+    }
+    if ( defined $query->{ 'uri' } ) {
+        $query->{ 'uri' } = $self->uri_encoder->encode(
+           $query->{ 'uri' }
+        );
+    }
+    if (not defined $page_size) {
+        #Default at the time, but need to make explicit here:
+        $page_size = 20;
+    }
+    if ( not defined $query->{ 'limit' } ) {
+        #Default at the time, but need to make explicit here:
+        $query->{ 'limit' } = $page_size;
+    }
+
+    my $done = 0;
+    my $last_id = undef;
+    my $num_returned = 0;
+    my $limit_orig = $query->{ 'limit' };
+    $query->{ 'limit' } = $page_size + 1;
+    #
+    # End of code duplication:
+    #
+
+    my $url = URI->new( "${\$self->api_url}/search" );
+    $url->query_form($query);
+    warn $url, "\n" if $VERB > 1;
+    my $response = $self->ua->get( $url );
+    my $json_content = $json->decode($response->content);
+    return $json_content->{ 'total' };
 }
 
 
