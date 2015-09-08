@@ -418,14 +418,18 @@ sub search {
     if (not defined $query) {
         $query = {};
     }
-    if (not defined $page_size) {
-        #Default at the time, but need to make explicit here:
-        $page_size = 20;
-    }
     if ( defined $query->{ 'uri' } ) {
         $query->{ 'uri' } = $self->uri_encoder->encode(
            $query->{ 'uri' }
         );
+    }
+    if (not defined $page_size) {
+        #Default at the time, but need to make explicit here:
+        $page_size = 20;
+    }
+    if ( not defined $query->{ 'limit' } ) {
+        #Default at the time, but need to make explicit here:
+        $query->{ 'limit' } = $page_size;
     }
 
     my $done = 0;
