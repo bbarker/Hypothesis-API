@@ -38,6 +38,8 @@ sub test_url_encode_0 {
 }
 
 sub search_recent {
+
+    $H->set_ua_timeout(10);
     
     my $result_iter = $H->search;
     my @top_items;
@@ -60,7 +62,9 @@ sub search_recent {
 
 
 sub search_total {
-    
+
+    $H->set_ua_timeout(10);
+
     my $total = $H->search_total;
     if ($total > 0 ) {
         pass("Reported $total total items.");
@@ -71,6 +75,8 @@ sub search_total {
 
 
 sub search_page_with_one {
+
+    $H->set_ua_timeout(10);
 
     my $limit = 10;
     #
@@ -98,6 +104,8 @@ sub search_page_with_one {
 
 sub search_30 {
 
+    $H->set_ua_timeout(10);
+
     my $limit = 30;
     my $result_iter = $H->search({limit => $limit});
     my @top_items;
@@ -113,6 +121,8 @@ sub search_30 {
 
 
 sub search_30_by_5incs {
+
+    $H->set_ua_timeout(10);
 
     my $limit = 30;
     my $pg_size = 5;
@@ -138,6 +148,8 @@ sub search_30_by_5incs {
 
 sub search_google_com {
 
+    $H->set_ua_timeout(10);
+
     my $limit = 10;
     my $uri = 'https://www.google.com/?gws_rd=ssl';
     my $result_iter = $H->search({
@@ -162,7 +174,9 @@ sub search_google_com {
 
 
 sub read_empty {
-    
+
+    $H->set_ua_timeout(10);
+
     my $item = $H->read_id;
     if (defined $item->{'id'}) {
         pass("Got a single item from read.");
@@ -172,7 +186,9 @@ sub read_empty {
 }
 
 sub read_id_test {
-    
+
+    $H->set_ua_timeout(10);
+
     my $item = $H->read_id($rand_id);
     if (defined $item->{'id'}) {
         if (($item->{'id'} eq $rand_id) and ($rand_id ne '')) {

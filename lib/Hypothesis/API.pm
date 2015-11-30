@@ -231,7 +231,10 @@ sub create {
     my $url = URI->new( "${\$self->api_url}/annotations" );
     my $response = $self->ua->post( $url, Content => $data );
     if ($response->code == 200) {
-        my $json_content = $json->decode($response->content);
+        my $json_content = try_json_decode($response);
+        if (not $json_content) {
+            die "Was unable to decode JSON content for id from 'create' call.";
+        }
         if (exists $json_content->{'id'}) {
             return $json_content->{'id'};
         } else {
@@ -268,16 +271,14 @@ sub delete_id {
     $self->ua->default_headers( $h );
     my $url = URI->new( "${\$self->api_url}/annotations/$id" );
     my $response = $self->ua->delete( $url );
-    my $json_content;
-    my $success = try{
-        $json_content = $json->decode($response->content);
-    } catch {
-        warn "Trouble decoding JSON: $_\n";
-        warn $response->content;
-        return 0;
-    };
-    if (not $success) {
-        return 0;
+    my $json_content = 0;
+    if ($response->code != 500) {
+        $json_content = try_json_decode($response);
+        if (not $json_content) {
+            die "Was unable to decode JSON content for delete_id, id: $id";
+        }
+    } else {
+        die "Received status code ${\$response->code} from Hypothes.is in delete_id.";
     }
     my $content_type = ref($json_content);
     if ($content_type eq "HASH") {
@@ -368,7 +369,15 @@ sub read_id {
     }
     my $url = URI->new( "${\$self->api_url}/annotations/$id" );
     my $response = $self->ua->get( $url );
-    my $json_content = $json->decode($response->content);
+    my $json_content = 0;
+    if ($response->code != 500) {
+        $json_content = try_json_decode($response);
+        if (not $json_content) {
+            die "Was unable to decode JSON content for read_id, id: $id"
+        }
+    } else {
+        die "Received status code ${\$response->code} from Hypothes.is in read_id.";
+    }
     my $content_type = ref($json_content);
     if ($content_type eq "HASH") {
         if (defined $json_content->{'id'}) {
@@ -458,7 +467,15 @@ sub search {
             $url->query_form($query);
             warn $url, "\n" if $VERB > 1;
             my $response = $self->ua->get( $url );
-            my $json_content = $json->decode($response->content);
+            my $json_content = 0;
+            if ($response->code != 500) {
+                $json_content = try_json_decode($response);
+                if (not $json_content) {
+                    die "Was unable to decode JSON content in search.";
+                }
+            } else {
+                die "Received status code ${\$response->code} from Hypothes.is in search.";
+            }
             @annotation_buff = @{$json_content->{ 'rows' }};
             if (defined $limit_orig and $limit_orig eq 'Infinity') {
                 # OK, we get the point, but let's get finite.
@@ -560,7 +577,15 @@ sub search_total {
     $url->query_form($query);
     warn $url, "\n" if $VERB > 1;
     my $response = $self->ua->get( $url );
-    my $json_content = $json->decode($response->content);
+    my $json_content = 0;
+    if ($response->code != 500) {
+        $json_content = try_json_decode($response);
+        if (not $json_content) {
+            die "Was unable to decode JSON content in search_total.";
+        }
+    } else {
+        die "Received status code ${\$response->code} from Hypothes.is in search_total.";
+    }
     return $json_content->{ 'total' };
 }
 
@@ -575,7 +600,7 @@ as described for 'search'. Only fields specified in the new payload
 are altered; other existing fields should remain unchanged.
 
 Returns a boolean value indicating whether or not the annotation for
-that id has been successfully delete (1 = yes, 0 = no).
+that id has been successfully updated (1 = yes, 0 = no).
 
 =cut
 
@@ -594,13 +619,21 @@ sub update_id {
     $self->ua->default_headers( $h );
     my $url = URI->new( "${\$self->api_url}/annotations/$id" );
     my $response = $self->ua->put( $url, Content => $data );
-    my $json_content = $json->decode($response->content);
+    my $json_content = 0;
+    if ($response->code != 500) {
+        $json_content = try_json_decode($response);
+        if (not $json_content) {
+            die "Was unable to decode JSON content for update_id, id: $id";
+        }
+    } else {
+        die "Received status code ${\$response->code} from Hypothes.is in update_id.";
+    }
     my $content_type = ref($json_content);
     if ($content_type eq "HASH") {
         if (defined $json_content->{'updated'}) {
             if ($json_content->{'updated'}) {
                 return 1;
-            } elsif (not $json_content->{'deleted'}) {
+            } elsif (not $json_content->{'updated'}) {
                 return 0;
             } else { # Never reached in current implementation
                 warn "unexpected update status: ${\$json_content->{'updated'}}";
@@ -613,6 +646,50 @@ sub update_id {
         die "Got $content_type; expected an ARRAY or HASH.";
     }
 }
+
+
+=head1 EXTERNAL ACCESSORS
+
+=head2 get_ua_timeout($timeout)
+
+Gets the timeout (in seconds) of the internal LWP::UserAgent object used to
+make requests to the Hypothes.is service.
+
+=cut
+
+sub get_ua_timeout {
+    my ($self) = @_;
+    return $self->ua->timeout;
+}
+
+=head2 set_ua_timeout($timeout)
+
+Under certain circumstances, particularly for testing, it is helpful to set
+the timeout (in seconds) used by LWP::UserAgent to make requests to the
+Hypothes.is service.
+
+=cut
+
+sub set_ua_timeout {
+    my ($self, $timeout) = @_;
+    $self->ua->timeout( $timeout );
+    return;
+}
+
+
+sub try_json_decode {
+    my ($response) = @_;
+    my $json_content = 0;
+    try{
+        $json_content = $json->decode($response->content);
+    } catch {
+        warn "Trouble decoding JSON: $_\n";
+        warn $response->content;
+    };
+    return $json_content;
+}
+
+
 
 =head1 AUTHOR
 
