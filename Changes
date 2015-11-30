@@ -1,5 +1,9 @@
 Revision history for Hypothesis-API
 
+0.13    2015-11-30
+        Improved error handling of JSON parsing, remote server errors, and timeouts.
+        Added methods to set server timeout length and employed this in test code.
+
 0.12    2015-09-08
         Signifacantly simplified search and fixed a bug with it (thanks Simeon Warner). 
         Added search_total function and test.
